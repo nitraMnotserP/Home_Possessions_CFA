@@ -1,0 +1,380 @@
+---
+title: "CEP523 Final"
+author: "Preston Martin"
+date: "2024-04-30"
+output:
+  html_document: default
+  word_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE) 
+```
+
+## **Introduction**
+  The Organization for Economic Cooperation and Development's (OECD) Programme for International Students Assessment (PISA) is amongst the most influential international large-scale assessments in the world with over 80 countries participating in the most recent (2022) iteration of the triennial assessment (OECD, 2022a). As such, results from the PISA are heralded by governments and policymakers around the world. Of the many constructs measured by PISA, their index of economic, social, and cultural status (ESCS), a proxy for socioeconomic status, is among the most important in the research literature for its robust associations with academic achievement variables (White, 1985; Sirin, 2004). The ESCS is a composite variable constituted by several factors: parental education, parental occupational status, and household possessions (Avvisati, 2020). The higher a student’s score on the ESCS, the higher their SES is said to be (OECD, 2018b).
+  The ESCS’s home possession index includes three sub-components: the availability of household items (e.g., a bathroom in the home), the number of books at home, and other digital resources (e.g., computers) in the home (OECD, 2018b). According to the OECD, home possessions are used to ascertain family wealth. As it stands, scholars have called into question the validity, reliability, and cross-national compatibility of the home possessions index (Hopfenbeck et al., 2016; Rutkowski and Rutkowski 2013; Pokropek et al. 2017; Willms & Tramonte 2015). Most notably, a large-scale multigroup confirmatory factor analysis (MG-CFA) project by Rutkowski and Rutkowski (2013) found that there was bias in ESCS measurement across countries, especially in those lower- and middle-income countries.
+  Responding to concerns that the PSIA was not relevant and/or responsive to middle- and lower-income countries and students, the OECD launched a revamped version of their ESCS for the most recent administration in 2022. Among the changes was a switch from mostly binary response items to mostly polytomous items (item ST250 remains binary) to allow for a more nuanced understanding of the construct. Further, some of the more problematic items from 2018 were removed for the 2022 administration and new items tailored specifically to assess low-income countries and students were added in their place. In total there are 30 items in the home possession scale (ST250, ST251, ST253, ST254, ST255, ST256): fourteen items for household items, seven items for digital devices in the home, and nine items for the number of books in the home. Similar to previous PISA administrations, there are several country-specific home items that are not internationally comparable as they are only collected within a single country (ST250D06JA, ST250D07JA, ST251D08JA, ST251D09JA). To preserve the international comparability of the present analysis, the four country-specific home items were not used.
+Because of the changes made to the items constituting the home possessions index, an extremely important variable, it is incumbent upon researchers to establish evidentiary support for its validity to support the statistical inferences drawn from it without inadvertently disadvantaging groups due to measurement biases. As such, the present study sought to take a small step in that regard by validating a hypothesized three-factor structure of the home possessions index for use in the United States. The central research question guiding this project was: does the home possessions index exhibit the predicted three factor structure in a sub-sample of PISA data from the United States?
+  
+## Methods
+**Data Source and Sample**
+	Data from the most recent iteration of PISA, that is 2022, were selected for this study because of the changes to the home possessions index, specifically the inclusion of new items purporting to be more responsive to socioeconomically disadvantaged students. The present study uses a subsample of American (USA) students from the 2022 International PISA database. The American subsample consisted of 4552 students from 154 schools. The sample consisted of 2235 female students and 2312 male students. The average age of participants was 15.83 years, and the average international grade level was 10.09 with a range of eighth grade to twelfth grade. Because the national datafile containing variables specific to the United States of America is still forthcoming from the National Center for Educational Statistics (NCES) the race and/or ethnicity of students could be verified.
+
+```{r packages}
+setwd("/Users/prestonmartin/Documents/Spring 2024/Multivariate/PISA-D Project/PISA_D")
+
+library(dplyr) # General data cleaning/manipulation
+library(psych)# Visualization/cleaning/descriptive
+library(magrittr) ##pipe operator
+library(lavaan) ##Calcualting CFA
+library(semTools) ##Visualization of CFA
+library(kableExtra)
+```
+
+
+```{r cars}
+pisa <- read.csv("PIA_22_USA.csv") ##read .csv back in to replace haven labeled object 
+
+##selete only the variables (items) in the CFA
+pisa <- pisa  %>% select(CNTSTUID,
+                         CNTSCHID,
+                         ST004D01T, ##gender
+                         ST001D01T, ##International Grade
+                         AGE,
+                         ST250Q01JA,
+                         ST250Q02JA,
+                         ST250Q03JA,
+                         ST250Q04JA,
+                         ST250Q05JA,
+                         ST251Q01JA,
+                         ST251Q02JA,
+                         ST251Q03JA,
+                         ST251Q04JA,
+                         ST251Q06JA,
+                         ST253Q01JA,
+                         ST254Q01JA,
+                         ST254Q02JA,
+                         ST254Q03JA,
+                         ST254Q04JA,
+                         ST254Q05JA,
+                         ST254Q06JA,
+                         ST255Q01JA,
+                         ST256Q01JA,
+                         ST256Q02JA,
+                         ST256Q03JA,
+                         ST256Q06JA,
+                         ST256Q07JA,
+                         ST256Q08JA,
+                         ST256Q09JA,
+                         ST256Q10JA)
+```
+
+## Variables
+**Household Items.** Household Items. The household items factor is constituted by the following ten items: ST250Q01JA, ST250Q02JA, ST250Q03JA, ST250Q04JA, ST250Q05JA, ST251Q01JA, ST251Q02JA, ST251Q03JA, ST251Q04JA, and ST251Q06JA. Items with the stem ST250 were binary response choice where ‘Yes’ indicated possession of the household item and ‘No’ indicated not possessing the household item. ST250 items had minimal missingness, ranging from 4.5 percent to 5.6 percent across the sample. Questions with the stem ST251 were polytomous response choice items ranging from (1) None, (2) One, (3) Two, and (4) Three or more. Those ST251 items had data missingness ranging from 4.4 percent to 7.1 percent. The items making up this hypothesized factor were recoded such that binary responses were dummy variables indicating the possession of that household item (1 = Yes, 0 = No), and polytomous response were recoded such that the scale was (0) none, (1) one, (2) two, (3) three or more.
+
+```{r household}
+##Recode Household items--Start with binary variables (1 = yes 2= no)
+pisa$ST250Q01JA.r <- ifelse(pisa$ST250Q01JA == 1, 1, 0)
+table(pisa$ST250Q01JA.r)
+pisa$ST250Q02JA.r <- ifelse(pisa$ST250Q02JA == 1, 1, 0)
+table(pisa$ST250Q02JA.r)
+pisa$ST250Q03JA.r <- ifelse(pisa$ST250Q03JA == 1, 1, 0)
+table(pisa$ST250Q03JA.r)
+pisa$ST250Q04JA.r <- ifelse(pisa$ST250Q04JA == 1, 1, 0)
+table(pisa$ST250Q04JA.r)
+pisa$ST250Q05JA.r <- ifelse(pisa$ST250Q05JA == 1, 1, 0)
+table(pisa$ST250Q05JA.r)
+
+##next, re-code the polytomous Household items
+pisa$ST251Q01JA.r <- pisa$ST251Q01JA - 1
+table(pisa$ST251Q01JA.r)
+pisa$ST251Q02JA.r <- pisa$ST251Q02JA - 1
+table(pisa$ST251Q02JA.r) ##verify
+pisa$ST251Q03JA.r <- pisa$ST251Q03JA - 1
+table(pisa$ST251Q03JA.r)##verify
+pisa$ST251Q04JA.r <- pisa$ST251Q04JA - 1
+table(pisa$ST251Q04JA.r)##verify
+pisa$ST251Q06JA.r <- pisa$ST251Q06JA -1
+table(pisa$ST251Q06JA.r)##verify
+```
+
+**Digital Devices in the Home.** 
+    The digital devices in the home factor was constituted by the following seven items: ST253Q01JA, ST254Q01JA, ST254Q02JA, ST254Q03JA, ST254Q04JA, ST254Q05JA, ST254Q06JA. Item ST253Q01JA was a polytomous response item with a scale from (1) There are no <digital devices> with screens, (2) One, (3) Two, (4) Three, (5) Four, (6) Five, (7) 6 to 10, and (8) More than 10. Item ST253Q01JA had missing value comprising approximately 9.3 percent. The query for item ST253Q01JA was, “How many [digital devices] with screens are there in your [home]?” (OECD, 2021). Due to this items qualitative differences from the other items in that it was a single item that represented a global rating of the other individual items, it was excluded from the analysis. Items with the stem ST254 were also polytomous responses, but their scales ranged from (1) none, (2) 1 or 2, (3) 3 - 5, (4) More than 5, and (5) I don’t know. Because there is little literature addressing it, “I don’t know” responses were coded as NA for the present analysis. All items were re-coded such that the lowest value in a given response format corresponded to 0.00. Across all items constituting the digital devices in the home factor, the proportion of missingness ranged from 4.8 percent to 9.7 percent.
+
+```{r digital}
+pisa$ST253Q01JA.r <- pisa$ST253Q01JA - 1
+table(pisa$ST253Q01JA.r)
+
+pisa$ST254Q01JA.r  <- ifelse(pisa$ST254Q01JA == 5, NA,
+                            ifelse(pisa$ST254Q01JA == 1, 0,
+                                   ifelse(pisa$ST254Q01JA == 2, 1,
+                                          ifelse(pisa$ST254Q01JA == 3, 2,
+                                                 ifelse(pisa$ST254Q01JA == 4, 3,
+                                                        ifelse(pisa$ST254Q01JA == 5, 4, -9999))))))
+table(pisa$ST254Q01JA.r )##verify
+
+pisa$ST254Q02JA.r  <- ifelse(pisa$ST254Q02JA == 5, NA,
+                             ifelse(pisa$ST254Q02JA == 1, 0,
+                                    ifelse(pisa$ST254Q02JA == 2, 1,
+                                           ifelse(pisa$ST254Q02JA == 3, 2,
+                                                  ifelse(pisa$ST254Q02JA == 4, 3,
+                                                         ifelse(pisa$ST254Q02JA == 5, 4, -9999))))))
+table(pisa$ST254Q02JA.r)##verify
+
+pisa$ST254Q03JA.r <- ifelse(pisa$ST254Q03JA == 5, NA,
+                              ifelse(pisa$ST254Q03JA == 1, 0,
+                                     ifelse(pisa$ST254Q03JA == 2, 1,
+                                            ifelse(pisa$ST254Q03JA == 3, 2,
+                                                   ifelse(pisa$ST254Q03JA == 4, 3,
+                                                          ifelse(pisa$ST254Q03JA == 5, 4, -9999))))))
+table(pisa$ST254Q03JA.r)##verify
+
+pisa$ST254Q04JA.r <- ifelse(pisa$ST254Q04JA == 5, NA,
+                            ifelse(pisa$ST254Q04JA == 1, 0,
+                                   ifelse(pisa$ST254Q04JA == 2, 1,
+                                          ifelse(pisa$ST254Q04JA == 3, 2,
+                                                 ifelse(pisa$ST254Q04JA == 4, 3,
+                                                        ifelse(pisa$ST254Q04JA == 5, 4, -9999))))))
+table(pisa$ST254Q04JA.r)##verify
+
+pisa$ST254Q05JA.r <- ifelse(pisa$ST254Q05JA == 5, NA,
+                            ifelse(pisa$ST254Q05JA == 1, 0,
+                                   ifelse(pisa$ST254Q05JA == 2, 1,
+                                          ifelse(pisa$ST254Q05JA == 3, 2,
+                                                 ifelse(pisa$ST254Q05JA == 4, 3,
+                                                        ifelse(pisa$ST254Q05JA == 5, 4, -9999))))))
+table(pisa$ST254Q05JA.r)##verify
+
+pisa$ST254Q06JA.r <- ifelse(pisa$ST254Q06JA == 5, NA,
+                            ifelse(pisa$ST254Q06JA == 1, 0,
+                                   ifelse(pisa$ST254Q06JA == 2, 1,
+                                          ifelse(pisa$ST254Q06JA == 3, 2,
+                                                 ifelse(pisa$ST254Q06JA == 4, 3,
+                                                        ifelse(pisa$ST254Q06JA == 5, 4, -9999))))))
+table(pisa$ST254Q06JA.r)##verify
+```
+
+**Books in the Home**
+    The books in the home factor was constituted by the following nine items: ST255Q01JA, ST256Q01JA, ST256Q02JA, ST256Q03JA, ST256Q06JA, ST256Q07JA, ST256Q08JA, ST256Q09JA, and ST256Q10JA. Item ST255Q01JA is a polytomous response item with a response scale of (1) no books, (2) 1-10 books, (3) 11-25 books, (4) 26-100 books, (5) 101-200 books, (6) 201-500 books, and (7) More than 500 Books. The query for item ST255Q01JA was “How many books are there in your [home]?” (OECD, 2021). Similar to the above, item ST255Q01JA represents a global rating of the other indicators and thus was not included in the analysis. Items with the stem ST256 were measured using a five-point response scale from (1) none, (2) 1-5, (3) 6-10, (4) more than 1, and (5) I don't know. All items were recoded such that the lowest value in each response format corresponded to 0.00. Like other factors, ‘I don’t know’ responses were coded as NA. The proportion of missingness for the items on the book in the home subscale ranged from 23.5 percent to 32. percent.
+```{r books}
+pisa$ST255Q01JA.r  <- pisa$ST255Q01JA - 1 ##1 = no books; 2 = 1-10 books; 3 = 11-25 books; 4 = 26-100 books; 5 = 101-200 books; 6 = 201-500 books; 7 = More than 500 Books
+table(pisa$ST255Q01JA.r)##verify
+
+pisa$ST256Q01JA.r <- ifelse(pisa$ST256Q01JA == 5, NA,
+                            ifelse(pisa$ST256Q01JA == 1, 0,
+                                   ifelse(pisa$ST256Q01JA == 2, 1,
+                                          ifelse(pisa$ST256Q01JA == 3, 2,
+                                                 ifelse(pisa$ST256Q01JA == 4, 3,
+                                                        ifelse(pisa$ST256Q01JA == 5, 4, -9999))))))
+table(pisa$ST256Q01JA.r) ##verify
+
+pisa$ST256Q02JA.r <- ifelse(pisa$ST256Q02JA == 5, NA,
+                            ifelse(pisa$ST256Q02JA == 1, 0,
+                                   ifelse(pisa$ST256Q02JA == 2, 1,
+                                          ifelse(pisa$ST256Q02JA == 3, 2,
+                                                 ifelse(pisa$ST256Q02JA == 4, 3,
+                                                        ifelse(pisa$ST256Q02JA == 5, 4, -9999))))))
+
+table(pisa$ST256Q02JA.r) ##verify
+
+pisa$ST256Q03JA.r <- ifelse(pisa$ST256Q03JA == 5, NA,
+                                 ifelse(pisa$ST256Q03JA == 1, 0,
+                                        ifelse(pisa$ST256Q03JA == 2, 1,
+                                               ifelse(pisa$ST256Q03JA == 3, 2,
+                                                      ifelse(pisa$ST256Q03JA == 4, 3,
+                                                             ifelse(pisa$ST256Q03JA == 5, 4, -9999))))))
+table(pisa$ST256Q03JA.r) ##verify
+
+pisa$ST256Q06JA.r <- ifelse(pisa$ST256Q06JA == 5, NA,
+                            ifelse(pisa$ST256Q06JA == 1, 0,
+                                   ifelse(pisa$ST256Q06JA == 2, 1,
+                                          ifelse(pisa$ST256Q06JA == 3, 2,
+                                                 ifelse(pisa$ST256Q06JA == 4, 3,
+                                                        ifelse(pisa$ST256Q06JA == 5, 4, -9999))))))
+table(pisa$ST256Q06JA.r) ##verify
+
+pisa$ST256Q07JA.r <- ifelse(pisa$ST256Q07JA == 5, NA,
+                          ifelse(pisa$ST256Q07JA == 1, 0,
+                                 ifelse(pisa$ST256Q07JA == 2, 1,
+                                        ifelse(pisa$ST256Q07JA == 3, 2,
+                                               ifelse(pisa$ST256Q07JA == 4, 3,
+                                                      ifelse(pisa$ST256Q07JA == 5, 4, -9999))))))
+table(pisa$ST256Q07JA.r) ##verify
+
+pisa$ST256Q08JA.r <- ifelse(pisa$ST256Q08JA == 5, NA,
+                            ifelse(pisa$ST256Q08JA == 1, 0,
+                                   ifelse(pisa$ST256Q08JA == 2, 1,
+                                          ifelse(pisa$ST256Q08JA == 3, 2,
+                                                 ifelse(pisa$ST256Q08JA == 4, 3,
+                                                        ifelse(pisa$ST256Q08JA == 5, 4, -9999))))))
+table(pisa$ST256Q08JA.r) ##verify
+
+pisa$ST256Q09JA.r <- ifelse(pisa$ST256Q09JA == 5, NA,
+                            ifelse(pisa$ST256Q09JA == 1, 0,
+                                   ifelse(pisa$ST256Q09JA == 2, 1,
+                                          ifelse(pisa$ST256Q09JA == 3, 2,
+                                                 ifelse(pisa$ST256Q09JA == 4, 3,
+                                                        ifelse(pisa$ST256Q09JA == 5, 4, -9999))))))
+table(pisa$ST256Q09JA.r) ##verify
+
+pisa$ST256Q10JA.r <- ifelse(pisa$ST256Q10JA == 5, NA,
+                            ifelse(pisa$ST256Q10JA == 1, 0,
+                                   ifelse(pisa$ST256Q10JA == 2, 1,
+                                          ifelse(pisa$ST256Q10JA == 3, 2,
+                                                 ifelse(pisa$ST256Q10JA == 4, 3,
+                                                        ifelse(pisa$ST256Q10JA == 5, 4, -9999))))))
+table(pisa$ST256Q10JA.r) ##verify
+
+
+
+
+missing <- colMeans(is.na(pisa[,32:56])) ##examine missingness for all variables in data frame
+missing
+
+##rename the variables
+pisa.rn <- pisa %>% 
+                  rename(Student_ID = CNTSTUID,
+                         home.1 = ST250Q01JA.r,
+                         home.2 = ST250Q02JA.r,
+                         home.3 = ST250Q03JA.r,
+                         home.4 = ST250Q04JA.r,
+                         home.5 = ST250Q05JA.r,
+                         home.6 = ST251Q01JA.r,
+                         home.7 = ST251Q02JA.r,
+                         home.8 = ST251Q03JA.r,
+                         home.9 = ST251Q04JA.r,
+                         home.10 = ST251Q06JA.r,
+                         total_digital_devices = ST253Q01JA.r,
+                         dig.1 = ST254Q01JA.r,
+                         dig.2 = ST254Q02JA.r,
+                         dig.3 = ST254Q03JA.r,
+                         dig.4 = ST254Q04JA.r,
+                         dig.5 = ST254Q05JA.r,
+                         dig.6 = ST254Q06JA.r,
+                         total_books = ST255Q01JA.r,
+                         book.1 = ST256Q01JA.r,
+                         book.2 = ST256Q02JA.r,
+                         book.3 = ST256Q03JA.r,
+                         book.4 = ST256Q06JA.r,
+                         book.5 = ST256Q07JA.r,
+                         book.6 = ST256Q08JA.r,
+                         book.7 = ST256Q09JA.r,
+                         book.8 = ST256Q10JA.r) %>% 
+            select(Student_ID, home.1, home.2, home.3, home.4, home.5, home.6, home.7, home.8, home.9, home.10,
+                        total_digital_devices, dig.1, dig.2, dig.3, dig.4, dig.5, dig.6, total_books, book.1,
+                                          book.2, book.3, book.4, book.5, book.6, book.7, book.8)
+
+
+##examine the distributions of variables and descriptive statistics
+pisa.rn <- pisa.rn %>% 
+  mutate_at(c(2:27), as.numeric)
+
+cor.mat <- psych::mixedCor(data=pisa.rn[,2:27]) ##run the mixed correlation
+cor.mat <- data.frame(cor.mat$rho) ##extract the mixed correlation matrix
+```
+
+Examining the mixed (i.e., tetrachoric and polychoric) correlations matrix, the correlations between the items on each of the scales were generally small to moderate with some high correlations. Across all items, the range of correlations was 0.002 too 0.877. Within subscale correlations ranged from 0.003 to 0.877 for home items factor, 0.108 to 0.389 for the digital devices in the home factor, and 0.187 to 0.716 for the books in the home factor. Of particular note in the matrix is the high correlation between home.8 and home.9 (r = 0.887).
+
+```{r corr}
+cor.mat %>%
+  kbl(caption = "Mixed Correlation Matrix for PISA 2022 Home Posessions Index Items", digits=3) %>%
+  kable_classic("hover", full_width = F, html_font = "Cambria")
+
+
+psych::multi.hist(pisa.rn[,2:27])
+
+descriptives <- psych::describe(pisa.rn[,2:27])
+
+descriptives %>%
+  kbl(caption = "Home Posessions Item Repones from PISA 2022 (n = 4552)", digits=1) %>%
+  kable_classic("hover", full_width = F, html_font = "Cambria")
+```
+**Analytic Strategy**
+  To answer the research questions above, a confirmatory factor analysis was calculated using R’s lavaan package for structural equation modeling (SEM; Rosseel, 2012). Three factors were defined using the lavaan syntax (Rosseel, 2012). The first factor, ‘home_items’, is defined by the ten indicators of home possession. The second factor, ‘dig’, is constituted by the six indicators of digital devices in the home. Finally, the third factor, ‘books’, is defined by the eight items asking students about the books present in their home.
+
+```{r mod}
+##Create three factor model syntax and run the three factor CFA in lavaan
+three.fac <- '
+            # three factors
+            home_item =~ home.1 + home.2 + home.3 + home.4 + home.5 + home.6 + home.7 + home.8 + home.9 + home.10
+            dig =~  dig.1 + dig.2 + dig.3 + dig.4 + dig.5 + dig.6
+            books =~  book.1 + book.2 + book.3 + book.4 + book.5 + book.6 + book.7 + book.8'
+```
+  Because the confirmatory factor model included both binary and ordinal response options, diagonally weighted least squares was used as the estimator, with the delta method for parametrization and robust standard errors. As the variables were entered into the model as binary and ordinal indicators, the assumption of multivariate normality does not apply. Model fit will be examined using several fit indices including a chi-square test, Bayesian Information Criterion (BIC), Alkaline Information Criterion (AIC), Root Mean Square Error of Approximation (RMSEA), Standardized Root Mean Square Error (SRMR), Comparative Fit Index (CFI), and Tucker-Lewis Index (TLI). The chi-square test is an overall goodness of fit statistic used to test the hypothesis that the population covariance matrix is equal to the model-implied population covariance matrix (Hu & Bentler, 1999). A significant chi square result indicates that the model does not fit the data well. One important caveat for the use of chi-square statistic as a fit statistic is that it is heavily influenced by large sample size (Hu & Bentler, 1999). In other words, large samples tend to lead to rejected null hypotheses, or statistically significant results.
+  Conversely, the RMSEA is sensitive to smaller samples sizes, but is adjusted for model parsimony (Hu & Bentler, 1999). The SRMR is similarly sensitive to smaller samples sizes. In line with Hu and Bentler (1999), the following generally accepted criteria for adequate model fit were: CFI > .90, TLI > .90, RMSEA < .08, and SRMR < .08. Criteria for good model fit in the present study was CFI > .95, TLI > .95, RMSEA < .05, and SRMR < .05. While each of these fit indices have their individual strengths and weaknesses, the proposed study will apply a holistic approach to instrument validation considering each of them.
+
+  
+## Results
+  The confirmatory factor analysis model converged normally after 30 iterations using diagonal least squares estimation methods with NLMINB optimization method. In total, 89 parameters were estimated by the model using 3088 observations of the 4552 total observations. The model test of the user model indicated inadequate fit based on the significant chi-square value, χ2 (249) = 2448.43, p < .001. Moving on to model fit indices, the CFI value was 0.970 which is indicative of good fit according to Hu and Bentler’s (1999) criteria. Similarly, the TLI value for the model was 0.967, further indicating good model fit. The RMSEA value was 0.066 (RMSEA = 0.066, 90% CI: [0.065, 0.069]) which indicated adequate fit (RMSEA < 0.08), but the model did not demonstrate good model fit (i.e., RMSEA < 0.05). The SRMR for the model was 0.101; this SRMR value indicated poor model fit. Holistically, these model fit indices suggest that this model fits adequately but could be improved.
+  The standardized loadings (Std.all) for all of the home items factor indicators were significant (p < .000). However, there were a few low loadings including home.4 (0.174; R2 = 0.030) and home.7 (0.158; R2 = 0.025) indicating that those items may be less reliable indicators of the latent trait in the given sample. The item Home.5 corresponds to the query “Which of the following are in your [home]: Your own [cell phone] with Internet access (e.g. smartphone)” and Home.7 corresponds to the query “How many of these items are there at your [home]: Mopeds or motorcycles”. In the American context, these items may be less salient to the construct. For example, most American have cell phones from a relatively young age making them less salient than in other countries. 
+  Apart from the item ‘dig.1’, the other five items on the digital devices in the home subscale showed acceptably high coefficients (> 0.30). The item ‘dig.1’ corresponds to the query “How many of the following [digital devices] are in your [home]: Televisions”. All items on the books in the home factor show significant and high standardized factor loadings (> .30). A path diagram showing the confirmatory factor model and its standardized loadings can be seen below. Because the three factors were allowed to correlate, the covariances were also assessed. The standardized covariance between the home possessions factor and the digital devices at home factor was 0.536, p < .000. The standardized covariance between the home possessions factor and the books at home factor was 0.437, p < .000. Finally, the standardized covariance between the digital devices at home factor and the books at home factor was 0.530, p < .000.
+
+```{r cfa}
+##Set data types
+pisa.rn <- pisa.rn %>% 
+            mutate_at(c(2:27), as.ordered)
+##Fit the CFA model
+fit <- cfa(three.fac, data = pisa.rn,  ordered = TRUE)
+##Examine the outputs
+summary(fit, fit.measures = TRUE, rsquare = TRUE, standardize = TRUE)
+```
+## Confirmtatory Factor Analysis Model with Standrdized Loadings 
+```{r,  fig.height = 25, fig.width = 35}
+    
+    # Plotting functions in semPlot package
+library("semPlot")
+
+# Plot path diagram:
+model <- semPaths(fit, "std", title=FALSE, edge.label.cex=0.5,
+         curvePivot = TRUE, layout = "tree")
+```
+
+
+## Discussion
+  Taken together, the model fit indices and the factor structures indicated that there was marginal fit of the model to hypothesized three factor structure. Some problematic items were identified such as Home.5, Home.7, and dig.1 based on their standardized loadings and R-squared values. As the home possessions index is meant to be effective, responsive, and comparable across 81 countries it is not surprising that some items are less salient in the American context, just as other items would likely function in different cultural and economic contexts. 
+  There are several important weaknesses to the present research. Firstly, the global indicators were not included in the model as previously discussed. Secondly, the United States’ national database is not yet available for public use which does not allow for the application of intersectional lenses and testing of measurement invariance in those various groups. Further, given some of the particularly high correlations, future studies be more exact in terms of the inter-item covariance structure when specifying the model. The rudimentary model presented here does not consider specific inter-item covariances that may be present and thus it may not be the best solution possible. As the present analysis was confirmatory rather than exploratory, modification indices were not explored that may have allowed for a better identified model.
+  This study represents a small advancement in the field as it takes an initial step to better understand the functioning of the ESCS’s home possessions index in the United States of America. While the omission of the two global ratings in the present study might be considered a limitation of this study, it may be remedied by employing an IRT model such as a Rasch Partial Credit Model (Masters, 1982) or a second order factor model (Rindskopf & Rose, 1988). Because the PISA 2022 international database has only recently been released (December 2023), researchers should complete a conceptual replication of Rutkowski and Rutkowski’s (2013) MG-CFA across all 81 participating countries where the ESCS was employed in the 2022 administration. This research is immediately needed as the ESCS is one of the most important variables collected by PISA. 
+
+## References
+    
+    Avvisati, F. (2020). The measure of socio-economic status in PISA: A review and some suggested improvements. Large-Scale Assessments in Education, 8(1), 8. https://doi.org/10.1186/s40536-020-00086-x
+    
+    Bache S, Wickham H (2022).  Magrittr: A Forward-Pipe Operator for R_. R package version 2.0.3, https://CRAN.R-project.org/package=magrittr.
+    
+    Hopfenbeck, T. N., Lenkeit, J., El Masri, Y., Cantrell, K., Ryan, J., & Baird, J. A. (2018). Lessons learned from PISA: A systematic review of peer-reviewed articles on the programme for international student assessment. Scandinavian Journal of Educational Research, 62(3), 333-353. https://doi.org/10.1080/00313831.2016.1258726
+    
+    Hu, L. T., & Bentler, P. M. (1999). Cutoff criteria for fit indexes in covariance structure analysis: Conventional criteria versus new alternatives. Structural equation modeling: a multidisciplinary journal, 6(1), 1-55. https://doi.org/10.1080/10705519909540118 
+    
+    Jorgensen, T. D., Pornprasertmanit, S., Schoemann, A. M., & Rosseel, Y. (2022). semTools: Useful tools for structural equation modeling. R package version 0.5-6. Retrieved from https://CRAN.R-project.org/package=semTools 
+    
+    Masters, G. N. (1982). A Rasch model for partial credit scoring. Psychometrika, 47(2), 149-174.
+    
+    Organisation for Economic Co-operation and Development (OECD) (2023) PISA 2022 Technical Report. Paris: OECD Publishing. Retrieved from https://www.oecd.org/pisa/data/pisa2022technicalreport/
+    
+    Organisation for Economic Co-operation and Development. (2018a). Programme for International Student Assessment. https://www.oecd.org/pisa/
+    
+    Organisation for Economic Co-operation and Development. (2018b). Equity in education: Breaking down barriers to social mobility. In PISA. Paris: OECD Publishing. https://doi.org/10.1787/9789264073234-en
+    
+    Pokropek, A., Borgonovi, F., & Jakubowski, M. (2015). Socio-economic disparities in academic achievement: A comparative analysis of mechanisms and pathways. Learning and Individual Differences, 42, 10-18.
+    
+    Revelle, W. (2023). Package ‘psych’. The comprehensive R archive network, 337(338). https://CRAN.R-project.org/package=psych 
+    
+    Rindskopf, D., & Rose, T. (1988). Some theory and applications of confirmatory second-order factor analysis. Multivariate behavioral research, 23(1), 51-67.
+    
+    Rosseel, Y. (2012). lavaan: An R package for structural equation modeling. Journal of statistical software, 48, 1-36. Doi: 10.18637/jss.v048.i02  
+    
+      Rutkowski, L., & Rutkowski, D. (2010). Getting it ‘better’: the importance of improving background questionnaires in international large‐scale assessment. Journal of Curriculum Studies, 42(3), 411-430. https://doi.org/10.1080/00220272.2010.487546  
+    
+      Rutkowski, D., & Rutkowski, L. (2013). Measuring socioeconomic background in PISA: One size might not fit all. Research in Comparative and International Education, 8(3), 259-278. http://dx.doi.org/10.2304/rcie.2013.8.3.259
+    
+    Sirin, S. R. (2005). Socioeconomic status and academic achievement: A meta-analytic review of research. Review of educational research, 75(3), 417-453. https://doi.org/10.3102/00346543075003417 
+    
+    Wickham, H., Averick, M., Bryan, J., Chang, W., McGowan, L. D. A., François, R., ... & Yutani, H. (2019). Welcome to the Tidyverse. Journal of open source software, 4(43), 1686.
+
+    White, K. R. (1982). The relation between socioeconomic status and academic achievement. Psychological bulletin, 91(3), 461.
+
+    Willms, J., & Tramonte, L. (2015). Towards the development of contextual questionnaires for the PISA for development study. In OECD education working papers (Vol. 2015). Paris: OECD Publishing. https://dx.doi.org/10.1787/5js1kv8crsjf-en.
+
+    Zhu, H., Travison, T., Tsai, T., Beasley, W., Xie, Y., & Yu, G. (2019). Package ‘kableExtra’: Construct Complex Table with 'kable' and Pipe Syntax. https://CRAN.R-project.org/package=kableExtra. 
+
+
